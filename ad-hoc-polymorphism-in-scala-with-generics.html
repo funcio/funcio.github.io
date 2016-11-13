@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>Ad-hoc polymorphism in scala with generics | Func.io</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="Ad-hoc polymorphism, also known as operator overloading allows a function to behave differently for different parameters. In this posts we will see some of the limitations of operator overloading when">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Ad-hoc polymorphism in scala with generics">
+<meta property="og:url" content="http://func.io/ad-hoc-polymorphism-in-scala-with-generics.html">
+<meta property="og:site_name" content="Func.io">
+<meta property="og:description" content="Ad-hoc polymorphism, also known as operator overloading allows a function to behave differently for different parameters. In this posts we will see some of the limitations of operator overloading when">
+<meta property="og:updated_time" content="2016-11-13T13:18:32.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Ad-hoc polymorphism in scala with generics">
+<meta name="twitter:description" content="Ad-hoc polymorphism, also known as operator overloading allows a function to behave differently for different parameters. In this posts we will see some of the limitations of operator overloading when">
+  
+    <link rel="alternate" href="/atom.xml" title="Func.io" type="application/atom+xml">
+  
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" integrity="sha384-XdYbMnZ/QjLh6iI4ogqCTaIjrFk87ip+ekIjefZch0Y+PvJ8CDYtEs1ipDmPorQ+" crossorigin="anonymous">
+
+  <link rel="stylesheet" href="/css/styles.css">
+  
+
+</head>
+
+<body>
+  
+
+  <div class="container">
+    <div class="blog-header">
+</div>
+
+    <div class="row">
+        <div class="col-sm-8 blog-main">
+          <article id="post-ad-hoc-polymorphism-in-scala-with-generics" class="article article-type-post" itemscope itemprop="blogPost">
+
+  <header class="article-header">
+    
+  
+    <h1 class="article-title" itemprop="name">
+      Ad-hoc polymorphism in scala with generics
+    </h1>
+  
+
+
+  </header>
+
+  <div class="article-meta">
+    <div class="article-author">
+      <a href="/author/jose">Jose Raya</a>
+    </div>
+    <div class="article-datetime">
+  <a href="/ad-hoc-polymorphism-in-scala-with-generics.html" class="article-date"><time datetime="2016-11-09T23:00:00.000Z" itemprop="datePublished">2016-11-10</time></a>
+</div>
+
+    
+
+    
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/leaky-abstractions/">leaky_abstractions</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/scala/">scala</a></li></ul>
+
+
+  </div>
+  <div class="article-inner">
+
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p><a href="https://en.wikipedia.org/wiki/Ad_hoc_polymorphism" target="_blank" rel="external">Ad-hoc polymorphism</a>, also known as <em>operator overloading</em> allows a function to behave differently for different parameters. In this posts we will see some of the limitations of operator overloading when combined with generics and how to overcome them in an idiomatic way.</p>
+<p>TL;DR:</p>
+<ul>
+<li>Scala supports ad-hoc polymorphism as a language feature</li>
+<li>But it has issues with generics because of type erasure</li>
+<li>Some times, the use of generics is not obvious (for instance, functions)</li>
+<li>Pattern matching is a really bad solution to this problem</li>
+<li>We can solve these issues with type classes</li>
+</ul>
+<a id="more"></a>
+<h2 id="The-problem"><a href="#The-problem" class="headerlink" title="The problem"></a>The problem</h2><p>I have a system with several combinations of connections and wanted to write a method that allowed for a unified way to execute a function inside a block that ensures that connections are correctly closed after the method execution. The idea was to write something like:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">trait ConnectionAggregator &#123;</div><div class="line">  def close(): Unit</div><div class="line">&#125;</div><div class="line"></div><div class="line">case class OneConnection(conn: Connection) extends ConnectionAggregator &#123;</div><div class="line">  def close(): Unit = &#123;</div><div class="line">    conn.close()</div><div class="line">  &#125;</div><div class="line">&#125;</div><div class="line">case class TwoConnections(conn1: Connection, conn2: Connection) extends ConnectionAggregator &#123;</div><div class="line">  def close(): Unit = &#123;</div><div class="line">    conn1.close()</div><div class="line">    conn2.close()</div><div class="line">  &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">db.closing &#123; tx: OneConnection =&gt;</div><div class="line">  //do whatever that needs to be done here</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>And then, if I need a different combination of connections, change only the type to <code>TwoConnections</code> and be done with it.</p>
+<p><a href="https://scalafiddle.io/sf/60vTlmn/2" target="_blank" rel="external">This code, however, does not compile:</a></p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">closing</span></span>[<span class="type">T</span>](f: <span class="type">OneConnection</span> =&gt; <span class="type">T</span>): <span class="type">T</span> = &#123;</div><div class="line">  <span class="keyword">val</span> conn = <span class="keyword">new</span> <span class="type">OneConnection</span>(<span class="keyword">new</span> <span class="type">Connection</span>())</div><div class="line">  <span class="keyword">val</span> res = f(conn)</div><div class="line">  conn.close()</div><div class="line">  res</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">closing</span></span>[<span class="type">T</span>](f: <span class="type">TwoConnections</span> =&gt; <span class="type">T</span>): <span class="type">T</span> = &#123;</div><div class="line">  <span class="keyword">val</span> conn = <span class="keyword">new</span> <span class="type">TwoConnections</span>(<span class="keyword">new</span> <span class="type">Connection</span>(), <span class="keyword">new</span> <span class="type">Connection</span>())</div><div class="line">  <span class="keyword">val</span> res = f(conn)</div><div class="line">  conn.close()</div><div class="line">  res</div><div class="line">&#125;</div><div class="line"></div><div class="line">closing &#123; c: <span class="type">OneConnection</span> =&gt; </div><div class="line">  println(<span class="string">s"c1 is <span class="subst">$&#123;c.conn.isOpen&#125;</span>"</span>)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>The problem is that the parameter is a function and a function is a generic (Function1[C,T]) and, thus, the compiler does not support method overloading with this parameter:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">ScalaFiddle.scala:27: error: double definition:</div><div class="line">def closing[T](f: ScalaFiddle.OneConnection =&gt; T): T at line 26 and</div><div class="line">def closing[T](f: ScalaFiddle.TwoConnections =&gt; T): T at line 33</div><div class="line">have same type after erasure: (f: Function1)Object</div><div class="line">  def closing[T](f: TwoConnections =&gt; T): T = &#123;</div><div class="line">      ^</div></pre></td></tr></table></figure>
+<p>In my opinion, this is a leaky abstraction but there is nothing we can do about it and, thus, we need to find a solution.</p>
+<h2 id="The-obvious-solution-Get-rid-of-ad-hoc-polymorphism"><a href="#The-obvious-solution-Get-rid-of-ad-hoc-polymorphism" class="headerlink" title="The obvious solution: Get rid of ad-hoc polymorphism"></a>The obvious solution: Get rid of ad-hoc polymorphism</h2><p>This is probably the most obvious and simple solution to the problem: If the compiler does not know which version of the method to call, then make the caller tell by using a different name: </p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">closing1</span></span>[<span class="type">T</span>](f: <span class="type">OneConnection</span> =&gt; <span class="type">T</span>): <span class="type">T</span> = &#123;</div><div class="line">  <span class="keyword">val</span> conn = <span class="keyword">new</span> <span class="type">OneConnection</span>(<span class="keyword">new</span> <span class="type">Connection</span>())</div><div class="line">  <span class="keyword">val</span> res = f(conn)</div><div class="line">  conn.close()</div><div class="line">  res</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">closing2</span></span>[<span class="type">T</span>](f: <span class="type">TwoConnections</span> =&gt; <span class="type">T</span>): <span class="type">T</span> = &#123;</div><div class="line">  <span class="keyword">val</span> conn = <span class="keyword">new</span> <span class="type">TwoConnections</span>(<span class="keyword">new</span> <span class="type">Connection</span>(), <span class="keyword">new</span> <span class="type">Connection</span>())</div><div class="line">  <span class="keyword">val</span> res = f(conn)</div><div class="line">  conn.close()</div><div class="line">  res</div><div class="line">&#125;</div><div class="line"></div><div class="line">closing1 &#123; c =&gt; </div><div class="line">  println(<span class="string">s"c1 is <span class="subst">$&#123;c.conn.isOpen&#125;</span>"</span>)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>This solution has one big plus: We don’t need to tell the type of the connection aggregator because it can be inferred from the method name (now there is only one possible type).</p>
+<p>On the other hand, we have to remember the name of the method for every type (something that can be mitigated by following a convention like <code>closingOneConnection</code>, <code>closingTwoConnections</code>, etc.) and the solution is not very general because we need to write a new method with the same structure for every combination of connections (this can be mitigated by reusing private methods in the implementation of the different closingX)</p>
+<h2 id="Multi-method-inspired-pattern-matching"><a href="#Multi-method-inspired-pattern-matching" class="headerlink" title="Multi method inspired pattern matching"></a>Multi method inspired pattern matching</h2><p>As good coders, it is our duty to research the solution space to see if we can come up with a better solution or, at least, one that makes a different trade-off so that we can be sure that we have adopted the best posible solution to our problem.</p>
+<p>One possible solution is to do something like what clojure does with multi methods and use <a href="https://scalafiddle.io/sf/60vTlmn/3" target="_blank" rel="external">pattern matching</a>:</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">closing</span></span>[<span class="type">T</span>,<span class="type">Q</span>&lt;: <span class="type">ConnectionAggregator</span>](f: <span class="type">Q</span> =&gt; <span class="type">T</span>): <span class="type">T</span> = &#123;</div><div class="line">  <span class="keyword">val</span> conn: <span class="type">Q</span> = f <span class="keyword">match</span> &#123;</div><div class="line">    <span class="keyword">case</span> f: (<span class="type">OneConnection</span> =&gt; <span class="type">T</span>) =&gt;</div><div class="line">      <span class="keyword">new</span> <span class="type">OneConnection</span>(<span class="keyword">new</span> <span class="type">Connection</span>()).asInstanceOf[<span class="type">Q</span>]</div><div class="line">    <span class="keyword">case</span> f: (<span class="type">TwoConnections</span> =&gt; <span class="type">T</span>) =&gt;</div><div class="line">      <span class="keyword">new</span> <span class="type">TwoConnections</span>(<span class="keyword">new</span> <span class="type">Connection</span>(), <span class="keyword">new</span> <span class="type">Connection</span>()).asInstanceOf[<span class="type">Q</span>]</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">val</span> res = f(conn)</div><div class="line">  conn.close()</div><div class="line">  res</div><div class="line">&#125;</div><div class="line"></div><div class="line">closing &#123; c: <span class="type">OneConnection</span> =&gt; </div><div class="line">  println(<span class="string">s"c1 is <span class="subst">$&#123;c.conn.isOpen&#125;</span>"</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line">closing &#123; c: <span class="type">TwoConnections</span> =&gt;</div><div class="line">  println(<span class="string">s"c2 is <span class="subst">$&#123;c.conn1.isOpen&#125;</span>"</span>)</div><div class="line">  println(<span class="string">s"c3 is <span class="subst">$&#123;c.conn2.isOpen&#125;</span>"</span>)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>The result is:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">c1 is true</div><div class="line">ERROR: undefined</div></pre></td></tr></table></figure>
+<p>That is, the first time everything is ok but the second time the code fails at runtime. This is clearly an even worse situation than before (we have tricked the compiler into compiling a code that will not work in run time).</p>
+<p>The problem is that, because of type erasure, both patterns are exactly the same in run time. Thus, the first execution is fine but the second is not because the type cast fails. This is one of the reasons why type casts are discouraged, because they might look like they are safe but they are not and we will not know until we hit the code path that makes it fail.</p>
+<h2 id="Type-classes-to-the-rescue"><a href="#Type-classes-to-the-rescue" class="headerlink" title="Type classes to the rescue"></a>Type classes to the rescue</h2><p>Haskell is another regular source of inspiration when it comes to solve design problems, specially if we want to do it in a type safe way. In this case, we can define a type class for all the Connection combinations and see what happens:</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">object</span> <span class="title">ConnectionAggregator</span> </span>&#123;</div><div class="line">  <span class="class"><span class="keyword">trait</span> <span class="title">Closeable</span>[<span class="type">T</span>] </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">create</span></span>(): <span class="type">T</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">close</span></span>(c: <span class="type">T</span>): <span class="type">Unit</span></div><div class="line">  &#125;</div><div class="line">  <span class="keyword">implicit</span> <span class="class"><span class="keyword">object</span> <span class="title">oneConnectionCloseable</span> <span class="keyword">extends</span> <span class="title">Closeable</span>[<span class="type">OneConnection</span>] </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">create</span></span>() = <span class="keyword">new</span> <span class="type">OneConnection</span>(<span class="keyword">new</span> <span class="type">Connection</span>())</div><div class="line">  </div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">close</span></span>(c: <span class="type">OneConnection</span>) = &#123;</div><div class="line">      c.conn.close()</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">  </div><div class="line">  <span class="keyword">implicit</span> <span class="class"><span class="keyword">object</span> <span class="title">twoConnectionsCloseable</span> <span class="keyword">extends</span> <span class="title">Closeable</span>[<span class="type">TwoConnections</span>] </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">create</span></span>() = <span class="keyword">new</span> <span class="type">TwoConnections</span>(<span class="keyword">new</span> <span class="type">Connection</span>(), <span class="keyword">new</span> <span class="type">Connection</span>())</div><div class="line">  </div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">close</span></span>(c: <span class="type">TwoConnections</span>) = &#123;</div><div class="line">      c.conn1.close()</div><div class="line">      c.conn2.close()</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">case</span> <span class="class"><span class="keyword">class</span> <span class="title">OneConnection</span>(<span class="params">conn: <span class="type">Connection</span></span>) </span></div><div class="line"><span class="keyword">case</span> <span class="class"><span class="keyword">class</span> <span class="title">TwoConnections</span>(<span class="params">conn1: <span class="type">Connection</span>, conn2: <span class="type">Connection</span></span>) </span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">closing</span></span>[<span class="type">T</span>,<span class="type">Q</span>](f: <span class="type">Q</span> =&gt; <span class="type">T</span>)(<span class="keyword">implicit</span> ev: <span class="type">ConnectionAggregator</span>.<span class="type">Closeable</span>[<span class="type">Q</span>]): <span class="type">T</span> = &#123;</div><div class="line">  <span class="keyword">val</span> conn: <span class="type">Q</span> = ev.create()</div><div class="line">  <span class="keyword">val</span> res = f(conn)</div><div class="line">  ev.close(conn)</div><div class="line">  res</div><div class="line">&#125;</div><div class="line"></div><div class="line">closing &#123; c: <span class="type">OneConnection</span> =&gt; </div><div class="line">  println(<span class="string">s"c1 is <span class="subst">$&#123;c.conn.isOpen&#125;</span>"</span>)</div><div class="line">&#125;</div><div class="line"></div><div class="line">closing &#123; c: <span class="type">TwoConnections</span> =&gt;</div><div class="line">  println(<span class="string">s"c2 is <span class="subst">$&#123;c.conn1.isOpen&#125;</span>"</span>)</div><div class="line">  println(<span class="string">s"c3 is <span class="subst">$&#123;c.conn2.isOpen&#125;</span>"</span>)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>If you <a href="https://scalafiddle.io/sf/60vTlmn/5" target="_blank" rel="external">run it</a> the result is what we expected:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">c1 is true</div><div class="line">c2 is true</div><div class="line">c3 is true</div></pre></td></tr></table></figure>
+<p>This solution does not force us to make the two connection aggregators inherit from the same trait (this is specially interesting if we cannot modify the source of the connection aggregator)</p>
+<p>In this case, we are not overloading the method (there is only one method) and, thus, we are safe from the type erasure problem. The solution is general because, as there is only one method, the structure of the method is the same for all the combinations and it is very easy to abstract the parts of behavior that may change and put them in the type class.</p>
+<p>The biggest downside of this solution is that it is a bit verbose if we only have two cases but it is easy to see how it will be less verbose than the ‘obvious’ solution as the number of connection aggregators grow.</p>
+
+      
+    </div>
+
+    
+      
+
+    
+
+    <footer class="article-footer">
+      <a data-url="http://func.io/ad-hoc-polymorphism-in-scala-with-generics.html" data-id="civgo40y200019bpb3k7xh361" class="article-share-link">
+        <i class="fa fa-share"></i> Share
+      </a>
+      
+    </footer>
+  </div>
+  
+    
+<ul id="article-nav" class="nav nav-pills nav-justified">
+  
+  <li role="presentation">
+    <a href="/reboot.html" id="article-nav-older" class="article-nav-link-wrap">
+      <i class="fa fa-chevron-left pull-left"></i>
+      <span class="article-nav-link-title">Reboot</span>
+    </a>
+  </li>
+  
+  
+</ul>
+
+
+  
+</article>
+
+
+
+
+        </div>
+        <div class="col-sm-3 col-sm-offset-1 blog-sidebar">
+          
+  <div class="sidebar-module sidebar-module-inset">
+  <a href="/">
+    <img src='/img/logofuncionotes.png'/>
+    <h2>Funció</h2> 
+  </a>
+  <h4>/ˈfun’sió/</h4>
+  
+  
+    <h5>FP from the Agilogy team</h5>
+  
+</div>
+
+
+  
+
+
+  
+  <div class="sidebar-module">
+    <h4>Tags</h4>
+    <ul class="sidebar-module-list"><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/tags/about/">about</a><span class="sidebar-module-list-count">1</span></li><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/tags/leaky-abstractions/">leaky_abstractions</a><span class="sidebar-module-list-count">1</span></li><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/tags/scala/">scala</a><span class="sidebar-module-list-count">1</span></li></ul>
+  </div>
+
+
+
+  
+  <div class="sidebar-module">
+    <h4>Tag Cloud</h4>
+    <p class="tagcloud">
+      <a href="/tags/about/" style="font-size: 10px;">about</a> <a href="/tags/leaky-abstractions/" style="font-size: 10px;">leaky_abstractions</a> <a href="/tags/scala/" style="font-size: 10px;">scala</a>
+    </p>
+  </div>
+
+
+  
+  <div class="sidebar-module">
+    <h4>Archives</h4>
+    <ul class="sidebar-module-list"><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/archives/2016/11/">November 2016</a><span class="sidebar-module-list-count">2</span></li></ul>
+  </div>
+
+
+
+  
+  <div class="sidebar-module">
+    <h4>Recents</h4>
+    <ul class="sidebar-module-list">
+      
+        <li>
+          <a href="/ad-hoc-polymorphism-in-scala-with-generics.html">Ad-hoc polymorphism in scala with generics</a>
+        </li>
+      
+        <li>
+          <a href="/reboot.html">Reboot</a>
+        </li>
+      
+    </ul>
+  </div>
+
+
+
+        </div>
+    </div>
+  </div>
+  <footer class="blog-footer">
+  <div class="container">
+    <div id="footer-info" class="inner">
+     <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License</a>.
+    </div>
+  </div>
+</footer>
+
+  
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js" integrity="sha384-8gBf6Y4YYq7Jx97PIqmTwLPin4hxIzQw5aDmUg/DDhul9fFpbbLcLh3nTIIDJKhx" crossorigin="anonymous"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+
+
+<script src="/js/script.js"></script>
+
+</body>
+</html>

@@ -39,6 +39,70 @@
         <div class="col-sm-8 blog-main">
           
   
+    <article id="post-ad-hoc-polymorphism-in-scala-with-generics" class="article article-type-post" itemscope itemprop="blogPost">
+
+  <header class="article-header">
+    
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/ad-hoc-polymorphism-in-scala-with-generics.html">Ad-hoc polymorphism in scala with generics</a>
+    </h1>
+  
+
+
+  </header>
+
+  <div class="article-meta">
+    <div class="article-author">
+      <a href="/author/jose">Jose Raya</a>
+    </div>
+    <div class="article-datetime">
+  <a href="/ad-hoc-polymorphism-in-scala-with-generics.html" class="article-date"><time datetime="2016-11-09T23:00:00.000Z" itemprop="datePublished">2016-11-10</time></a>
+</div>
+
+    
+
+    
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/leaky-abstractions/">leaky_abstractions</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/scala/">scala</a></li></ul>
+
+
+  </div>
+  <div class="article-inner">
+
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p><a href="https://en.wikipedia.org/wiki/Ad_hoc_polymorphism">Ad-hoc polymorphism</a>, also known as <em>operator overloading</em> allows a function to behave differently for different parameters. In this posts we will see some of the limitations of operator overloading when combined with generics and how to overcome them in an idiomatic way.</p>
+<p>TL;DR:</p>
+<ul>
+<li>Scala supports ad-hoc polymorphism as a language feature</li>
+<li>But it has issues with generics because of type erasure</li>
+<li>Some times, the use of generics is not obvious (for instance, functions)</li>
+<li>Pattern matching is a really bad solution to this problem</li>
+<li>We can solve these issues with type classes</li>
+</ul>
+        
+          <p class="article-more-link">
+            <a class="btn btn-primary" href="/ad-hoc-polymorphism-in-scala-with-generics.html#more">Read More</a>
+          </p>
+        
+      
+    </div>
+
+    
+
+    <footer class="article-footer">
+      <a data-url="http://func.io/ad-hoc-polymorphism-in-scala-with-generics.html" data-id="civgo40y200019bpb3k7xh361" class="article-share-link">
+        <i class="fa fa-share"></i> Share
+      </a>
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
     <article id="post-reboot" class="article article-type-post" itemscope itemprop="blogPost">
 
   <header class="article-header">
@@ -84,7 +148,7 @@
     
 
     <footer class="article-footer">
-      <a data-url="http://func.io/reboot.html" data-id="civgi9v5g00033xpbsutp56fg" class="article-share-link">
+      <a data-url="http://func.io/reboot.html" data-id="civgo40y600039bpb2p1v45yi" class="article-share-link">
         <i class="fa fa-share"></i> Share
       </a>
       
@@ -122,7 +186,7 @@
   
   <div class="sidebar-module">
     <h4>Tags</h4>
-    <ul class="sidebar-module-list"><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/tags/about/">about</a><span class="sidebar-module-list-count">1</span></li></ul>
+    <ul class="sidebar-module-list"><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/tags/about/">about</a><span class="sidebar-module-list-count">1</span></li><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/tags/leaky-abstractions/">leaky_abstractions</a><span class="sidebar-module-list-count">1</span></li><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/tags/scala/">scala</a><span class="sidebar-module-list-count">1</span></li></ul>
   </div>
 
 
@@ -131,7 +195,7 @@
   <div class="sidebar-module">
     <h4>Tag Cloud</h4>
     <p class="tagcloud">
-      <a href="/tags/about/" style="font-size: 10px;">about</a>
+      <a href="/tags/about/" style="font-size: 10px;">about</a> <a href="/tags/leaky-abstractions/" style="font-size: 10px;">leaky_abstractions</a> <a href="/tags/scala/" style="font-size: 10px;">scala</a>
     </p>
   </div>
 
@@ -139,7 +203,7 @@
   
   <div class="sidebar-module">
     <h4>Archives</h4>
-    <ul class="sidebar-module-list"><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/archives/2016/11/">November 2016</a><span class="sidebar-module-list-count">1</span></li></ul>
+    <ul class="sidebar-module-list"><li class="sidebar-module-list-item"><a class="sidebar-module-list-link" href="/archives/2016/11/">November 2016</a><span class="sidebar-module-list-count">2</span></li></ul>
   </div>
 
 
@@ -148,6 +212,10 @@
   <div class="sidebar-module">
     <h4>Recents</h4>
     <ul class="sidebar-module-list">
+      
+        <li>
+          <a href="/ad-hoc-polymorphism-in-scala-with-generics.html">Ad-hoc polymorphism in scala with generics</a>
+        </li>
       
         <li>
           <a href="/reboot.html">Reboot</a>
