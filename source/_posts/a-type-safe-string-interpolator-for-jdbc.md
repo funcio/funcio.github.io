@@ -177,7 +177,7 @@ Error:(27, 16) could not find implicit value for parameter mapper2: com.agilogy.
 ```
 And this is exactly what we wanted :)
 
-#Summary
+# Summary
  
 Of course, this solution is far from perfect as it requires a non-negligible amount of boilerplate (we need as many versions of the sql method as the maximum number of parameters we want to support) but we have a very powerful interpolator that is:
 
