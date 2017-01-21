@@ -3,14 +3,18 @@
 <head>
   <meta charset="utf-8">
   
-  <title>Func.io</title>
+  <title>A type-safe string interpolator for JDBC | Func.io</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Func.io">
-<meta property="og:url" content="http://func.io/index.html">
+  <meta name="description" content="There are plenty of frameworks for database access in Scala but for a side project I wanted something that pulled zero dependencies with it and, specially, something that could be used in any project">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A type-safe string interpolator for JDBC">
+<meta property="og:url" content="http://func.io/a-type-safe-string-interpolator-for-jdbc.html">
 <meta property="og:site_name" content="Func.io">
+<meta property="og:description" content="There are plenty of frameworks for database access in Scala but for a side project I wanted something that pulled zero dependencies with it and, specially, something that could be used in any project">
+<meta property="og:updated_time" content="2017-01-21T11:23:23.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Func.io">
+<meta name="twitter:title" content="A type-safe string interpolator for JDBC">
+<meta name="twitter:description" content="There are plenty of frameworks for database access in Scala but for a side project I wanted something that pulled zero dependencies with it and, specially, something that could be used in any project">
   
     <link rel="alternate" href="/atom.xml" title="Func.io" type="application/atom+xml">
   
@@ -37,15 +41,13 @@
 
     <div class="row">
         <div class="col-sm-8 blog-main">
-          
-  
-    <article id="post-a-type-safe-string-interpolator-for-jdbc" class="article article-type-post" itemscope itemprop="blogPost">
+          <article id="post-a-type-safe-string-interpolator-for-jdbc" class="article article-type-post" itemscope itemprop="blogPost">
 
   <header class="article-header">
     
   
-    <h1 itemprop="name">
-      <a class="article-title" href="/a-type-safe-string-interpolator-for-jdbc.html">A type-safe string interpolator for JDBC</a>
+    <h1 class="article-title" itemprop="name">
+      A type-safe string interpolator for JDBC
     </h1>
   
 
@@ -120,140 +122,22 @@
     </footer>
   </div>
   
-</article>
-
-
-
+    
+<ul id="article-nav" class="nav nav-pills nav-justified">
   
-    <article id="post-monads-for-the-pragmatic" class="article article-type-post" itemscope itemprop="blogPost">
-
-  <header class="article-header">
-    
+  <li role="presentation">
+    <a href="/monads-for-the-pragmatic.html" id="article-nav-older" class="article-nav-link-wrap">
+      <i class="fa fa-chevron-left pull-left"></i>
+      <span class="article-nav-link-title">Monads for the pragmatic</span>
+    </a>
+  </li>
   
-    <h1 itemprop="name">
-      <a class="article-title" href="/monads-for-the-pragmatic.html">Monads for the pragmatic</a>
-    </h1>
   
-
-
-  </header>
-
-  <div class="article-meta">
-    <div class="article-author">
-      <a href="/author/jose">Jose Raya</a>
-    </div>
-    <div class="article-datetime">
-  <a href="/monads-for-the-pragmatic.html" class="article-date"><time datetime="2016-11-23T22:35:47.000Z" itemprop="datePublished">2016-11-23</time></a>
-</div>
-
-    
-
-    
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/scala/">scala</a></li></ul>
-
-
-  </div>
-  <div class="article-inner">
-
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>There are plenty of monad articles but most of them are written from the assumption that monads are a good thing but sometimes fail to explain why they are a good thing. What I want to do in this article is to give an overview of the design trade-offs behing monads.</p>
-<h2 id="An-example-Promises"><a href="#An-example-Promises" class="headerlink" title="An example: Promises"></a>An example: Promises</h2><p>If you have written some Javascript in the last years, you will probably have used promises. Promises are cool because they avoid the <a href="https://en.wikipedia.org/wiki/Pyramid_of_doom_(programming" target="_blank" rel="external">callback pyramid of doom</a>) problem and are more composable than callbacks.</p>
-<p>A typical use case for promises are http requests: (from <a href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch" target="_blank" rel="external">here</a>)</p>
-<figure class="highlight javascript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> myImage = <span class="built_in">document</span>.querySelector(<span class="string">'img'</span>);</div><div class="line"></div><div class="line">fetch(<span class="string">'flowers.jpg'</span>)</div><div class="line">.then(<span class="function"><span class="keyword">function</span>(<span class="params">response</span>) </span>&#123;</div><div class="line">  <span class="keyword">return</span> response.blob();</div><div class="line">&#125;)</div><div class="line">.then(<span class="function"><span class="keyword">function</span>(<span class="params">myBlob</span>) </span>&#123;</div><div class="line">  <span class="keyword">var</span> objectURL = URL.createObjectURL(myBlob);</div><div class="line">  myImage.src = objectURL;</div><div class="line">&#125;);</div></pre></td></tr></table></figure>
-<p>Promises are cool because we can chain <code>.then</code> invocations and write code that looks sequential even though the execution is asynchronous.</p>
-<h2 id="What-do-promises-have-to-do-with-monads"><a href="#What-do-promises-have-to-do-with-monads" class="headerlink" title="What do promises have to do with monads?"></a>What do promises have to do with monads?</h2><p>Believe it or not, promises are a lot like monads (although I am not sure that we can properly call them monads and I don’t want to give a definition of what is and what is not a monad).</p>
-<p>A <a href="https://www.haskell.org/tutorial/monads.html" target="_blank" rel="external">monad</a> has two operations: <code>bind</code> and <code>return</code>. In our example, the <code>then</code> operation would be the <code>bind</code> operation (<code>flatMap</code> in Scala) that allows us to chain calculations.</p>
-<p>If we were to write the former code in Scala we would write something like this:</p>
-<figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">val</span> myImage = document.querySelector(<span class="symbol">'im</span>g');</div><div class="line"></div><div class="line">myImage.src = fetch(<span class="string">"flowers.jpg"</span>)</div><div class="line">.flatMap(response =&gt; &#123;</div><div class="line">  response.blob()</div><div class="line">&#125;)</div><div class="line">.map(myBlob =&gt; &#123;</div><div class="line">  <span class="type">URL</span>.createObjectURL(myBlob)</div><div class="line">&#125;)</div></pre></td></tr></table></figure>
-<p>or, with a for comprehension:</p>
-<figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">val</span> myImage = document.querySelector(<span class="symbol">'im</span>g');</div><div class="line">myImage.src = <span class="keyword">for</span> &#123;</div><div class="line">	response &lt;- fetch(<span class="string">"flowers.jpg"</span>)</div><div class="line">	myBlob &lt;- response.blob()</div><div class="line">&#125; <span class="keyword">yield</span> &#123;</div><div class="line">	<span class="type">URL</span>.createObjectURL(myBlob)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>Did you see what I did? The scala version of the code uses a different name for the <code>bind</code> operation. Instead of <code>then</code> (that only makes sense for promises) I used a more generic name <code>flatMap</code>, and this is one of the main reasons to use monads:</p>
-<blockquote>
-<p>By following a convention (or implementing a common interface) monads allow generic manipulation without really understanding<br>what the monad does</p>
-</blockquote>
-<p>The for comprehension works for Promises, but it also works for <code>Try</code>, or <code>Option</code> or any other monad we may want to implement. </p>
-<p>Another example:</p>
-<p>Let’s say that we implement a function that takes a <code>Seq[Promise[T]]</code> and returns a <code>Promise[Seq[T]]</code>. If later on we want a function<br>that takes a <code>Seq[Option[T]]</code> and returns an <code>Option[Seq[T]]</code> we can reuse the same funcion only if both are monads because they have some properties in common. If we were to write an Option equivalent in javascript, we could not reuse our methods that work with promises because the <code>then</code> method is specific for promises (of course we can create an <code>Option::then</code> method but that would be a bit weird).</p>
-
-      
-    </div>
-
-    
-      
-
-    
-
-    <footer class="article-footer">
-      <a data-url="http://func.io/monads-for-the-pragmatic.html" data-id="ciy75jm0g000262pbt9mmspr2" class="article-share-link">
-        <i class="fa fa-share"></i> Share
-      </a>
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-
-  
-    <article id="post-reboot" class="article article-type-post" itemscope itemprop="blogPost">
-
-  <header class="article-header">
-    
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/reboot.html">Reboot</a>
-    </h1>
-  
-
-
-  </header>
-
-  <div class="article-meta">
-    <div class="article-author">
-      <a href="/author/jose">Jose Raya</a>
-    </div>
-    <div class="article-datetime">
-  <a href="/reboot.html" class="article-date"><time datetime="2016-11-08T23:00:00.000Z" itemprop="datePublished">2016-11-09</time></a>
-</div>
-
-    
-
-    
-  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/about/">about</a></li></ul>
-
-
-  </div>
-  <div class="article-inner">
-
-    <div class="article-entry" itemprop="articleBody">
-      
-        <p>Welcome to <a href="http://func.io">funció</a>! This is a blog where we talk about functional programming and, specially, <a href="http://scala-lang.org" target="_blank" rel="external">scala</a>.<br>This is a new version of the blog that is <a href="http://github.com/funcio/funcio.github.io" target="_blank" rel="external">open source</a> and made with <a href="https://hexo.io/" target="_blank" rel="external">Hexo</a>. The old blog is still availabe on <a href="http://funcio.tumblr.com" target="_blank" rel="external">tumblr</a>.</p>
-<p>It is difficult to blog regularly and this is not our intention. But, on the other hand, we have some interesting conversations in our internal #scala channel on slack and we wanted a place where we could explore in detail the ideas we talk about there and, at the same time, to share these stories with the world.</p>
-<p>As a result, most of the articles will be about things we find in our day-to-day use of scala which we think is a good thing :)</p>
-
-      
-    </div>
-
-    
-      
-
-    
-
-    <footer class="article-footer">
-      <a data-url="http://func.io/reboot.html" data-id="ciy75jm0n000662pbtf4qpbp8" class="article-share-link">
-        <i class="fa fa-share"></i> Share
-      </a>
-      
-    </footer>
-  </div>
-  
-</article>
-
+</ul>
 
 
   
+</article>
 
 
 

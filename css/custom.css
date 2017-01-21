@@ -309,3 +309,7 @@ code {
 .blog-footer p:last-child {
   margin-bottom: 0;
 }
+
+.highlight .line {
+  min-height: 1.4em;
+}
