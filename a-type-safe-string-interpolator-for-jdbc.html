@@ -11,7 +11,7 @@
 <meta property="og:url" content="http://func.io/a-type-safe-string-interpolator-for-jdbc.html">
 <meta property="og:site_name" content="Func.io">
 <meta property="og:description" content="There are plenty of frameworks for database access in Scala but for a side project I wanted something that pulled zero dependencies with it and, specially, something that could be used in any project">
-<meta property="og:updated_time" content="2017-01-21T11:52:02.000Z">
+<meta property="og:updated_time" content="2017-01-21T11:57:40.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="A type-safe string interpolator for JDBC">
 <meta name="twitter:description" content="There are plenty of frameworks for database access in Scala but for a side project I wanted something that pulled zero dependencies with it and, specially, something that could be used in any project">
@@ -96,8 +96,7 @@
 <p>Now, if we want our previous tests to compile, we need to bring into scope the DefaultMappers. If we don’t, we will get an error like this one:</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">Error:(27, 16) could not find implicit value for parameter mapper2: com.agilogy.jdbc.interpolation. JdbcParameterCompatible[String]</div><div class="line">      val ps = sql&quot;select name from users where id=$id and city=$city&quot;</div></pre></td></tr></table></figure>
 <p>And this is exactly what we wanted :)</p>
-<p>#Summary</p>
-<p>Of course, this solution is far from perfect as it requires a non-negligible amount of boilerplate (we need as many versions of the sql method as the maximum number of parameters we want to support) but we have a very powerful interpolator that is:</p>
+<h1 id="Summary"><a href="#Summary" class="headerlink" title="Summary"></a>Summary</h1><p>Of course, this solution is far from perfect as it requires a non-negligible amount of boilerplate (we need as many versions of the sql method as the maximum number of parameters we want to support) but we have a very powerful interpolator that is:</p>
 <ul>
 <li>Easy to use: No more writing ‘?’ in the query and making sure that the args are in the right order</li>
 <li>Easy to extend: If we want to support new types all we need to do is bring a <code>JdbcParameterCompatible[T]</code> in scope</li>
@@ -116,7 +115,7 @@
     
 
     <footer class="article-footer">
-      <a data-url="http://func.io/a-type-safe-string-interpolator-for-jdbc.html" data-id="ciy76g3ho00014qpb5b45ba1h" class="article-share-link">
+      <a data-url="http://func.io/a-type-safe-string-interpolator-for-jdbc.html" data-id="ciy76m64y0002eipb116b1m2t" class="article-share-link">
         <i class="fa fa-share"></i> Share
       </a>
       
