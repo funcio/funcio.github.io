@@ -14,6 +14,7 @@ That meant, as there is nothing for JDBC in the Scala standard library, to hand 
 In my case, I was OK with hand-writing the SQL (no FRM or ORM) but, at the same time, I wanted my code to be checked at compile time as much as possible. I wanted a type safe SQL interpolator.
 
 <!--more-->
+
 # A very simple solution that just works
 
 For our first iteration we will check the official [documentation](http://docs.scala-lang.org/overviews/core/string-interpolation.html) and write an interpolator based in the examples there:
